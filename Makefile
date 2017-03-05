@@ -17,7 +17,7 @@ DEFAULT = z88
 
 # --> End of Configurable Options
 
-all: setup appmake copt zcpp sccz80 z80asm zcc zpragma zx7 z80nm ticks z80svg config
+all: setup appmake copt zcpp sccz80 z80asm zlink zcc zpragma zx7 z80nm ticks z80svg config
 
 setup:
 	echo '#define PREFIX "${prefix}$"/lib/z88dk"' > src/config.h
@@ -43,6 +43,10 @@ sccz80:
 
 z80asm:
 	$(MAKE) -C src/z80asm
+	$(MAKE) -C src/z80asm PREFIX=`pwd` install
+
+zlink:
+	$(MAKE) -C src/zlink
 	$(MAKE) -C src/z80asm PREFIX=`pwd` install
 
 zcc:

@@ -1,0 +1,62 @@
+//-----------------------------------------------------------------------------
+// Unit tests
+// Copyright (c) Paulo Custodio, 2015-2016
+// License: http://www.perlfoundation.org/artistic_license_2_0
+//-----------------------------------------------------------------------------
+
+#define C10		"0123456789"
+#define C26		"abcdefghijklmnopqrstuvwxyz"
+#define C127 	C26 C26 C26 C26 C10 C10 "123"
+#define C128	C127 "y"
+#define C255	C127 C128
+#define C256	C255 "z"
+#define C1000	C256 C256 C256 C128 C26 C26 C26 C26
+
+T(byte,		0,		1,	"\x00",		num,	0)
+T(byte,		1,		1,	"\x01",		num,	1)
+T(byte,		0x7F,	1,	"\x7F",		num,	0x7F)
+T(byte,		0x80,	1,	"\x80",		num,	0x80)
+T(byte,		0xFF,	1,	"\xFF",		num,	0xFF)
+T(byte,		-1,		1,	"\xFF",		num,	0xFF)
+T(byte,		-128,	1,	"\x80",		num,	0x80)
+T(byte,		0x100,	1,	"\x00",		num,	0)
+
+T(number,	0,			1,	"\x00",					num,	0)
+T(number,	1,			1,	"\x01",					num,	1)
+T(number,	0x7F,		1,	"\x7F",					num,	0x7F)
+T(number,	0x80,		3,	"\x82\x00\x80",			num,	0x80)
+T(number,	0xFF,		3,	"\x82\x00\xFF",			num,	0xFF)
+T(number,	0x0100,		3,	"\x82\x01\x00",			num,	0x0100)
+T(number,	0x7FFF,		3,	"\x82\x7F\xFF",			num,	0x7FFF)
+T(number,	0x8000,		4,	"\x83\x00\x80\x00",		num,	0x8000)
+T(number,	0xFFFF,		4,	"\x83\x00\xFF\xFF",		num,	0xFFFF)
+T(number,	0x010000,	4,	"\x83\x01\x00\x00",		num,	0x010000)
+T(number,	0x7FFFFF,	4,	"\x83\x7F\xFF\xFF",		num,	0x7FFFFF)
+T(number,	0x800000,	5,	"\x84\x00\x80\x00\x00",	num,	0x800000)
+T(number,	0xFFFFFF,	5,	"\x84\x00\xFF\xFF\xFF",	num,	0xFFFFFF)
+T(number,	0x01000000,	5,	"\x84\x01\x00\x00\x00",	num,	0x01000000)
+T(number,	0x7FFFFFFF,	5,	"\x84\x7F\xFF\xFF\xFF",	num,	0x7FFFFFFF)
+
+T(number,	-1,			2,	"\x81\xFF",				num,	-1)
+
+T(number,	-127,		2,	"\x81\x81",				num,	-127)
+T(number,	-128,		2,	"\x81\x80",				num,	-128)
+T(number,	-129,		3,	"\x82\xFF\x7F",			num,	-129)
+
+T(number,	-32767,		3,	"\x82\x80\x01",			num,	-32767)
+T(number,	-32768,		3,	"\x82\x80\x00",			num,	-32768)
+T(number,	-32769,		4,	"\x83\xFF\x7F\xFF",		num,	-32769)
+
+T(number,	-8388607,	4,	"\x83\x80\x00\x01",		num,	-8388607)
+T(number,	-8388608,	4,	"\x83\x80\x00\x00",		num,	-8388608)
+T(number,	-8388609,	5,	"\x84\xFF\x7F\xFF\xFF",	num,	-8388609)
+
+T(number,	-2147483647,5,	"\x84\x80\x00\x00\x01",	num,	-2147483647)
+
+T(string,	"",			1,		"\x00",					text,	"")
+T(string,	"a",		2,		"\x01" "a",				text,	"a")
+T(string,	C127,		128,	"\x7F" C127,			text,	C127)
+T(string,	C128,		130,	"\xDE\x80" C128,		text,	C128)
+T(string,	C255,		257,	"\xDE\xFF" C255,		text,	C255)
+T(string,	C256,		259,	"\xDF\x01\x00" C256,	text,	C256)
+T(string,	C1000,		1003,	"\xDF\x03\xE8" C1000,	text,	C1000)
