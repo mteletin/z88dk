@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // Unit tests
-// Copyright (c) Paulo Custodio, 2015-2016
+// Copyright (c) Paulo Custodio, 2015-2017
 // License: http://www.perlfoundation.org/artistic_license_2_0
 //-----------------------------------------------------------------------------
 #include "../memcheck.h"
