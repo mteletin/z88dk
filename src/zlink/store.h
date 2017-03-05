@@ -61,7 +61,7 @@ Store<T>::Store()
 //-----------------------------------------------------------------------------
 template<class T>
 Store<T>::~Store() {
-	for (std::vector<T*>::iterator it = objs_.begin(); it != objs_.end(); ++it)
+	for (typename std::vector<T*>::iterator it = objs_.begin(); it != objs_.end(); ++it)
 		delete *it;
 }
 
