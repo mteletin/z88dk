@@ -157,7 +157,7 @@ int main() {
 
 	// symbol
 	{
-		Symbol s1(0, "var");
+		Symbol s1("var");
 		r = s1.eval();
 		IS_RES_ERR(r, Result::UNDEFINED);
 
@@ -168,7 +168,7 @@ int main() {
 
 	// symbol with recursion
 	{
-		Symbol s1(0, "var");
+		Symbol s1("var");
 		s1.set_value(new SymbolExpr(&s1));
 		r = s1.eval();
 		IS_RES_ERR(r, Result::RECURSIVE);

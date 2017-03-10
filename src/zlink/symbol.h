@@ -12,9 +12,10 @@
 #include <string>
 #include <vector>
 
+// one symbol
 class Symbol {
 public:
-	Symbol(unsigned id, const std::string& name = "");
+	Symbol(const std::string& name);
 	virtual ~Symbol();
 
 	Expr* value();
@@ -23,7 +24,7 @@ public:
 	Result eval();
 
 private:
-	unsigned		id_;					// unique id in this module
+	unsigned		id_;					// id
 	std::string		name_;					// symbol name
 	Expr*			value_;					// symbol value
 	int				eval_count_;			// check for recursive evals
@@ -33,25 +34,51 @@ private:
 	bool			external_;				// true if defined elsewhere
 	bool			exported_;				// true if exported out
 
-	MK_GET(unsigned, id);
 	MK_GET(const std::string&, name);
 
+	MK_GET_SET(unsigned, id);
 	MK_GET_SET(bool, variable);
 	MK_GET_SET(bool, defined);
 	MK_GET_SET(bool, external);
 	MK_GET_SET(bool, exported);
 };
 
+
+// Holds all symbols in an object file
+class Symbols {
+public:
+	typedef std::vector<Symbol*> SymbolsList;	// holds objects
+
+	Symbols();
+	virtual ~Symbols();
+
+	Symbol* add(Symbol* symbol);				// sets symbol->id, adds to list, returns itself
+	SymbolsList::iterator begin();				// iterator
+	SymbolsList::iterator end();
+
+private:
+	SymbolsList	symbols_;
+};
+
+
+// holds stack of scopes, each scope is a map of name to weak Symbol*
 class Symtab {
 public:
+	typedef std::map<std::string, Symbol*>	SymbolsMap;	// weak pointers
+	typedef std::vector<SymbolsMap*>		MapList;	// holds objects
+
 	Symtab();
 	virtual ~Symtab();
 
+	void enter_scope();
+	void exit_scope();
+	unsigned scope_level();
+
+	Symbol* search(const std::string& name);	// search in all scopes, NULL if not found
+	Symbol* add(Symbol* symbol);				// add to current scope level, symbol is weak pointer
+
 private:
-#if 0
-	Store					symids_;			// map name to ID
-	std::vector<Symbol*>	symbols_;			// map ID to symbol
-#endif
+	MapList		list_;
 };
 
 #endif // ndef SYMBOL_H_
