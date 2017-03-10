@@ -10,7 +10,7 @@
 class Name {
 public:
 	Name(const std::string& name) : name_(new std::string(name)) {}
-	virtual ~Name() {}
+	virtual ~Name() { delete name_; }
 
 private:
 	std::string* name_;
