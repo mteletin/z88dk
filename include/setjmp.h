@@ -18,6 +18,7 @@
  */
 
 typedef struct {
+	int	iy;
 	int	ix;
 	int	sp;
 	int	pc;
@@ -25,6 +26,6 @@ typedef struct {
 
 
 extern int __LIB__ setjmp(jmp_buf *env);
-extern void __LIB__ longjmp(jmp_buf *env, int val);
+extern void __LIB__ longjmp(jmp_buf *env, int val) __smallc;
 
 #endif /* _SETJMP_H */

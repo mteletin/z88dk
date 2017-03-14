@@ -115,7 +115,7 @@ void DoLibHeader(void)
     if (1) {
         char* ptr = filen;
         if (!isalpha(*ptr) && *ptr != '_') {
-            memmove(ptr + 1, ptr, strlen(ptr));
+            memmove(ptr + 1, ptr, strlen(ptr) + 1);
             *ptr = 'X';
         }
         while (*ptr) {
@@ -996,9 +996,12 @@ void point(void)
         ol("defw\tASMPC+2");
 }
 
-/* Modify the stack pointer to the new value indicated */
+/* Modify the stack pointer to the new value indicated 
+ * \param newsp - Where we need to be 
+ * \param save - NO or the variable type that we need to preserve
+ * \param saveaf - Whether we should save af
+ */
 int modstk(int newsp, int save, int saveaf)
-/*  newsp - if true save hl;  save - preserve contents of af */
 {
     int k, flag = NO;
 
@@ -1074,13 +1077,17 @@ modstkcht:
             doexx();
     }
 #else
-    if (save)
-        doexx();
+    if (save) {
+        if (c_notaltreg) savehl();
+        else doexx();
+    }
     vconst(k);
     ol("add\thl,sp");
     ol("ld\tsp,hl");
-    if (save)
-        doexx();
+    if (save) {
+        if (c_notaltreg) restorehl();
+        else doexx();
+    }
 #endif
     if (saveaf) {
         if (c_notaltreg) {
@@ -1439,6 +1446,14 @@ void com(LVALUE* lval)
 void inc(LVALUE* lval)
 {
     switch (lval->val_type) {
+    case DOUBLE:
+        // FA = value to be incremented
+        dpush();
+        vlongconst(1);
+        convSlong2doub();
+        callrts("dadd");
+        Zsp += 6;
+        break;
     case LONG:
     case CPTR:
         callrts("l_inclong");
@@ -1455,6 +1470,14 @@ void inc(LVALUE* lval)
 void dec(LVALUE* lval)
 {
     switch (lval->val_type) {
+    case DOUBLE:
+        // FA = value to be incremented
+        dpush();
+        vlongconst(-1);
+        convSlong2doub();
+        callrts("dadd");
+        Zsp += 6;
+        break;
     case LONG:
     case CPTR:
         callrts("l_declong");
@@ -1943,10 +1966,11 @@ void vlongconst(uint32_t val)
 
 void vlongconst_noalt(uint32_t val)
 {
-    constbc(val % 65536);
-    ol("push\tbc");
     constbc(val / 65536);
     ol("push\tbc");
+    constbc(val % 65536);
+    ol("push\tbc");
+    Zsp -= 4;
 }
 
 /*
@@ -2218,7 +2242,7 @@ void popframe(void)
     }
 }
 
-void gen_builtin_strcmp()
+void gen_builtin_strcpy()
 {
     int label;
     ol("pop\tde");

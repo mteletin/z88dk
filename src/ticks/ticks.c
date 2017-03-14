@@ -444,6 +444,11 @@ unsigned char
       , halted= 0
       ;
 
+unsigned char * mem;
+
+char   cmd_arguments[255];
+int    cmd_arguments_len = 0;
+
 long tapcycles(void){
   mues= 1;
   wavpos!=0x20000 && (ear^= 64);
@@ -486,10 +491,14 @@ void setf(int a){
 }
 
 int main (int argc, char **argv){
-  unsigned char * mem= (unsigned char *) malloc (0x10000);
-  int size= 0, start= 0, end= 0, intr= 0, tap= 0;
+  int size= 0, start= 0, end= 0, intr= 0, tap= 0, alarmtime = 0;
   char * output= NULL;
   FILE * fh;
+
+  mem = malloc(0x10000);
+
+  hook_init();
+
   tapbuf= (unsigned char *) malloc (0x20000);
   if( argc==1 )
     printf("Ticks v0.14c beta, a silent Z80 emulator by Antonio Villena, 10 Jan 2013\n\n"),
@@ -501,6 +510,7 @@ int main (int argc, char **argv){
     printf("  -end X         X in hexadecimal is the PC condition to exit\n"),
     printf("  -counter X     X in decimal is another condition to exit\n"),
     printf("  -int X         X in decimal are number of cycles for periodic interrupts\n"),
+    printf("  -w X           Maximum amount of running time (400000000 cycles per unit)\n"),
     printf("  -output <file> dumps the RAM content to a 64K file\n\n"),
     printf("  Default values for -pc, -start and -end are 0000 if ommited. When the program "),
     printf("exits, it'll show the number of cycles between start and end trigger in decimal\n\n"),
@@ -508,6 +518,10 @@ int main (int argc, char **argv){
   while (argc > 1){
     if( argv[1][0] == '-' && argv[2] )
       switch (argc--, argv++[1][1]){
+        case 'w':
+          alarmtime = strtol(argv[1], NULL, 10);
+          counter = 400000000LL * alarmtime;
+          break;
         case 'p':
           pc= strtol(argv[1], NULL, 16);
           break;
@@ -554,6 +568,16 @@ int main (int argc, char **argv){
             printf("\nInvalid header size\n"),
             exit(-1);
           wavpos= 44;
+          break;
+        case '-':
+          while ( argc > 1 ) {
+            // I think windows is now comformant with snprintf? Either way, we can't grow the arugment buffer...
+            cmd_arguments_len += snprintf(cmd_arguments + cmd_arguments_len, sizeof(cmd_arguments) - cmd_arguments_len, "%s%s",cmd_arguments_len > 0 ? " " : "", argv[1]);
+            argc--;
+            argv++;
+          }
+          mem[65280] = cmd_arguments_len % 256;
+          memcpy(&mem[65281], cmd_arguments, cmd_arguments_len % 256);
           break;
         default:
           printf("\nWrong Argument: %s\n", argv[0]);
@@ -675,6 +699,8 @@ int main (int argc, char **argv){
   if( !size )
     printf("File not specified or zero length\n");
   stint= intr;
+
+
   do{
     if( pc==start )
       st= 0,
@@ -2592,8 +2618,9 @@ int main (int argc, char **argv){
           case 0xf0: case 0xf1: case 0xf2: case 0xf3:
           case 0xf4: case 0xf5: case 0xf6: case 0xf7:
           case 0xf8: case 0xf9: case 0xfa: case 0xfb:
-          case 0xfc: case 0xfd: case 0xfe: case 0xff:
+          case 0xfc: case 0xfd: case 0xff:
             st+= 8; break;
+          case 0xfe: PatchZ80(); break;
           case 0x40: INR(b); break;                          // IN B,(C)
           case 0x48: INR(c); break;                          // IN C,(C)
           case 0x50: INR(d); break;                          // IN D,(C)
@@ -2923,10 +2950,15 @@ int main (int argc, char **argv){
         }
         ih=1;//break;
     }
-  } while ( pc != end && st < counter );
+  } while ( pc != end && st < counter  );
+  if ( alarmtime != -1 ) {
+      /* We running as a test, we should never reach the end, so exit with error */
+      exit(1);
+  }
   if( tap && st>sttap )
     sttap= st+( tap= tapcycles() );
-  printf("%llu\n", st);
+  if ( counter != -1 )
+    printf("%llu\n", st);
   if( output ){
     fh= fopen(output, "wb+");
     if( !fh )

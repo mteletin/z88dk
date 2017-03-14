@@ -199,6 +199,7 @@ static int             mz180 = 0;
 static int             c_nocrt = 0;
 static char           *c_crt_incpath = NULL;
 static int             processing_user_command_line_arg = 0;
+static char            c_sccz80_r2l_calling;
 
 static char            filenamebuf[FILENAME_MAX + 1];
 static char            tmpnambuf[] = "zccXXXX";
@@ -457,6 +458,7 @@ static arg_t     myargs[] = {
 	{ "-list", AF_BOOL_TRUE, SetBoolean, &lston, NULL, "Generate list files" },
 	{ "o", AF_MORE, SetString, &outputfile, NULL, "Set the output files" },
 	{ "nt", 0, AddAppmake, NULL, NULL, "Set notruncate on the appmake options" },
+	{ "set-r2l-by-default", AF_BOOL_TRUE, SetBoolean, &c_sccz80_r2l_calling, NULL, "(sccz80) Use r2l calling convention by default"},
 	{ "+", NO, AddPreProc, NULL, NULL, NULL },    /* Strips // comments in vcpp */
 	{ "-fsigned-char", AF_BOOL_TRUE, SetBoolean, &sdcc_signed_char, NULL, NULL },    /* capture sdcc signed char flag */
 	{ "M", AF_BOOL_TRUE, SetBoolean, &swallow_M, NULL, NULL },    /* swallow unsupported -M flag that configs are still generating (causes prob with sdcc) */
@@ -922,6 +924,7 @@ int main(int argc, char **argv)
 	BuildOptions(&llvmarg, llvmarg ? "-disable-partial-libcall-inlining " : "-O2 -disable-partial-libcall-inlining ");
 	BuildOptions(&llvmopt, llvmopt ? "-disable-simplify-libcalls -disable-loop-vectorization -disable-slp-vectorization -S " : "-O2 -disable-simplify-libcalls -disable-loop-vectorization -disable-slp-vectorization -S ");
 
+
 	/* Peephole optimization level for sdcc */
 	if (compiler_type == CC_SDCC)
 	{
@@ -946,7 +949,7 @@ int main(int argc, char **argv)
     if ((ptr = last_path_char(c_crt0)) != NULL) {
         char *p;
         p = mustmalloc((ptr - c_crt0 + 7) * sizeof(char));
-        sprintf(p, "-I \"%.*s\"", ptr - c_crt0, c_crt0);
+        sprintf(p, "-I \"%.*s\"",(int)( ptr - c_crt0), c_crt0);
         BuildOptions(&m4arg, p);
         free(p);
     }
@@ -1178,14 +1181,14 @@ int main(int argc, char **argv)
                     if (p)
                     {
                         len = strlen(tmp);
-                        snprintf(tmp + len, sizeof(tmp) - len - 1, "/%.*s", p - filelist[i], filelist[i]);
+                        snprintf(tmp + len, sizeof(tmp) - len - 1, "/%.*s", (int)(p - filelist[i]), filelist[i]);
                     }
 
                     if (*tmp == '\0')
                         strcpy(tmp, ".");
                 }
                 else if (p)
-                    snprintf(tmp, sizeof(tmp) - 1, "%.*s", p - filelist[i], filelist[i]);
+                    snprintf(tmp, sizeof(tmp) - 1, "%.*s", (int)(p - filelist[i]), filelist[i]);
                 else
                     strcpy(tmp, ".");
 
@@ -1211,7 +1214,7 @@ int main(int argc, char **argv)
                     exit(1);
                 }
 
-                if (q = last_path_char(original_filenames[i]))
+                if ((q = last_path_char(original_filenames[i])) != NULL )
                     q++;
                 else
                     q = original_filenames[i];
@@ -1330,7 +1333,7 @@ int main(int argc, char **argv)
 			int status = 0;
 
 			strcpy(filenamebuf, outputfile);
-			if (oldptr = find_file_ext(filenamebuf))
+			if ((oldptr = find_file_ext(filenamebuf)) != NULL )
 				*oldptr = 0;
 
 			if (mapon && copy_file(c_crt0, ".map", filenamebuf, ".map")) {
@@ -1387,7 +1390,8 @@ int copy_defc_file(char *name1, char *ext1, char *name2, char *ext2)
     char *line, *ptr;
     GFILTER *filter;
     regmatch_t pmatch[3];
-    int nfilter, errcode, lineno, len;
+    int nfilter, errcode, lineno;
+    unsigned int len;
 
     // the first regular expression is used to parse a z80asm generated defc line
     filter  = mustmalloc(sizeof(*filter));
@@ -1424,7 +1428,7 @@ int copy_defc_file(char *name1, char *ext1, char *name2, char *ext2)
             filter[nfilter].accept = !(*ptr == '-');
             if ((*ptr == '+') || (*ptr == '-')) ++ptr;
             while (isspace(*ptr)) ++ptr;
-            if (errcode = regcomp(&filter[nfilter].preg, ptr, REG_EXTENDED))
+            if ( (errcode = regcomp(&filter[nfilter].preg, ptr, REG_EXTENDED)) )
             {
                 regerror(errcode, &filter[nfilter].preg, buffer, sizeof(buffer));
                 fprintf(stderr, "Ignoring %s line %u: %s", globaldefrefile, lineno, buffer);
@@ -1468,7 +1472,7 @@ int copy_defc_file(char *name1, char *ext1, char *name2, char *ext2)
             fclose(out);
             return 1;
         }
-        snprintf(buffer, sizeof(buffer) - 1, "%.*s", pmatch[2].rm_eo - pmatch[2].rm_so, &line[pmatch[2].rm_so]);
+        snprintf(buffer, sizeof(buffer) - 1, "%.*s",(int)(pmatch[2].rm_eo - pmatch[2].rm_so), &line[pmatch[2].rm_so]);
 
         // accept or reject
         if (globaldefrefile)
@@ -1521,7 +1525,7 @@ int copyprepend_file(char *name1, char *ext1, char *name2, char *ext2, char *pre
     if ((out = fopen(buffer, "w")) == NULL)
         return 1;
 
-    fprintf(out, prepend);
+    fprintf(out, "%s", prepend);
     fclose(out);
 
 #ifdef WIN32
@@ -2070,7 +2074,7 @@ void print_help_text()
 	printf("\nOptions:\n\n");
 
 	while (cur->help) {
-		printf("-%-15s %s%s\n", cur->name, cur->flags & AF_DEPRECATED ? "(deprecated) " : "", cur->help);
+		printf("-%-20s %s%s\n", cur->name, cur->flags & AF_DEPRECATED ? "(deprecated) " : "", cur->help);
 		cur++;
 	}
 
@@ -2277,6 +2281,11 @@ static void configure_compiler()
 		}
 		if (c_code_in_asm) {
 			add_option_to_compiler("-cc");
+		}
+		if (c_sccz80_r2l_calling) {
+			add_option_to_compiler("-set-r2l-by-default");
+			preprocarg = " -DZ88DK_R2L_CALLING_CONVENTION";
+			BuildOptions(&cpparg, preprocarg);
 		}
 		c_compiler = c_sccz80_exe;
 		compiler_style = outimplied;

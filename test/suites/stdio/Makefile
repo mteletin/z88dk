@@ -2,16 +2,22 @@ include ../make.config
 
 
 
-SOURCES += $(wildcard *.c) 
+
+all:	test_scanf.bin test_sprintf.bin 
 
 
-all:	test.bin 
+test_scanf.bin: scanf.c $(SOURCES)
+	$(compile)
+	$(runtest)
 
+test_sprintf.bin: sprintf.c $(SOURCES)
+	$(call compile,-lm)
+	$(runtest)
 
-test.bin: $(SOURCES)
-	zcc +test -vn $(CFLAGS) $(SOURCES) -o $@ -lndos
-	$(MACHINE) -w 60 test.bin
+test_sprintf_sdcc.bin: sprintf.c $(SOURCES)
+	$(compile)
+	$(runtest)
 
 
 clean:
-	rm -f test.bin zcc_opt.def *~
+	rm -f *.bin zcc_opt.def *~
